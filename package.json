@@ -1,0 +1,14 @@
+{
+  "name": "kate4-bot",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "@discordjs/voice": "^0.18.0",
+    "axios": "^1.8.1",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "ffmpeg-static": "^5.2.0",
+    "pg": "^8.13.3",
+    "sodium-native": "^4.3.3"
+  }
+}
