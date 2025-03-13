@@ -5,6 +5,6 @@ services:
     - .:/bot
   voice:
     image: voicevox/voicevox_engine:cpu-latest
-    platform: linux/arm64
+    platform: linux/amd64
     ports:
       - 50021:50021
