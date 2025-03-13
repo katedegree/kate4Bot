@@ -52,6 +52,19 @@ async function processQueue() {
     const filePath = `./voice_${Date.now()}.wav`;
     await pipelineAsync(synthesisRes.data, fs.createWriteStream(filePath));
 
+    // 音声ファイルが生成された時間を記録
+    const fileCreationTime = Date.now();
+
+    // 現在時刻と比較して、1分以上経過していればスキップ
+    const currentTime = Date.now();
+    if (currentTime - fileCreationTime >= 60000) {
+      console.log("ファイル生成から1分以上経過しているため、再生をスキップします。");
+      fs.unlinkSync(filePath); // ファイルを削除
+      isProcessing = false; // 処理終了
+      processQueue(); // 次のリクエストを処理
+      return;
+    }
+
     // 音声を再生
     const player = createAudioPlayer();
     const resource = createAudioResource(filePath);
