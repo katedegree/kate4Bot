@@ -34,7 +34,7 @@ async function processQueue() {
         headers: {
           accept: "application/json", // accept ヘッダー追加
         },
-        params: { text: message.content, speaker: voice.speaker },
+        params: { text: message.content, speaker: voice.speaker || 1 },
       }
     );
 
@@ -43,7 +43,7 @@ async function processQueue() {
       "http://voice:50021/synthesis",
       queryRes.data,
       {
-        params: { speaker: voice.speaker },
+        params: { speaker: voice.speaker || 1 },
         responseType: "stream", // 音声データをストリームで受け取る
       }
     );
