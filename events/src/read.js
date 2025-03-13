@@ -19,8 +19,16 @@ let isProcessing = false; // 音声処理中かどうかのフラグ
 async function processQueue() {
   if (isProcessing || requestQueue.length === 0) return;
 
-  const { message, connection } = requestQueue.shift(); // キューからリクエストを取り出す
+  const { message, connection, requestTime } = requestQueue.shift(); // キューからリクエストを取り出す
   isProcessing = true; // 処理開始
+
+  const currentTime = Date.now();
+  if (currentTime - requestTime >= 60000) { // リクエストから1分以上経過していた場合
+    console.log("リクエストから1分以上経過しているため、スキップします。");
+    isProcessing = false;
+    processQueue(); // 次のリクエストを処理
+    return;
+  }
 
   try {
     const [voice] = await DB("SELECT speaker FROM voices WHERE user_id = $1", [
@@ -52,19 +60,6 @@ async function processQueue() {
     const filePath = `./voice_${Date.now()}.wav`;
     await pipelineAsync(synthesisRes.data, fs.createWriteStream(filePath));
 
-    // 音声ファイルが生成された時間を記録
-    const fileCreationTime = Date.now();
-
-    // 現在時刻と比較して、1分以上経過していればスキップ
-    const currentTime = Date.now();
-    if (currentTime - fileCreationTime >= 60000) {
-      console.log("ファイル生成から1分以上経過しているため、再生をスキップします。");
-      fs.unlinkSync(filePath); // ファイルを削除
-      isProcessing = false; // 処理終了
-      processQueue(); // 次のリクエストを処理
-      return;
-    }
-
     // 音声を再生
     const player = createAudioPlayer();
     const resource = createAudioResource(filePath);
@@ -92,8 +87,8 @@ export async function Read(message) {
   const connection = getVoiceConnection(voiceChannel.guild.id);
   if (!connection) return;
 
-  // リクエストをキューに追加
-  requestQueue.push({ message, connection });
+  // リクエストをキューに追加（リクエスト時刻を追加）
+  requestQueue.push({ message, connection, requestTime: Date.now() });
 
   // キューの処理を開始
   processQueue();
