@@ -1,9 +1,9 @@
 services:
   bot:
-   build: ./
-   volumes:
-    - .:/bot
-  restart: always
+    build: ./
+    volumes:
+      - .:/bot
+    restart: always
   voice:
     image: voicevox/voicevox_engine:cpu-latest
     platform: linux/amd64
