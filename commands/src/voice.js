@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export async function Voice(message) {
+export async function Voice(interaction) {
   const speakersRes = await axios
     .get("http://voice:50021/speakers")
     .then((res) => res.data);
@@ -16,7 +16,7 @@ export async function Voice(message) {
   }
 
   for (const speaker of speakers) {
-    message.channel.send(
+    interaction.channel.send(
       speaker
         .map((speaker) => "- " + speaker.id + ": " + speaker.name)
         .join("\n")

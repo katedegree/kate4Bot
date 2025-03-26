@@ -1,9 +1,10 @@
 import { joinVoiceChannel } from "@discordjs/voice";
 
-export async function Join(message) {
-  const channel = message.member.voice.channel;
+export async function Join(interaction) {
+  const channel = interaction.member.voice.channel;
+  
   if (!channel) {
-    return message.reply("VCに入ってからコマンドを実行してください。");
+    return interaction.reply("VCに入ってからコマンドを実行してください。");
   }
 
   const connection = joinVoiceChannel({
@@ -13,5 +14,5 @@ export async function Join(message) {
     selfDeaf: false,
   });
 
-  message.reply("VCに参加しました！");
+  interaction.reply("VCに参加しました！");
 }

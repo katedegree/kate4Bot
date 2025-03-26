@@ -1,11 +1,11 @@
 import { DB } from "../../db.js";
 import axios from "axios";
 
-export async function Set(message) {
-  const voiceChannel = message.member.voice.channel;
+export async function Set(interaction) {
+  const voiceChannel = interaction.member.voice.channel;
   if (!voiceChannel) return;
 
-  const speakerId = message.content.split(" ")[1];
+  const speakerId = interaction.options.getInteger("speaker_id");
 
   const speakersRes = await axios
     .get("http://voice:50021/speakers")
@@ -17,13 +17,13 @@ export async function Set(message) {
              VALUES ($1, $2) 
              ON CONFLICT (user_id) 
              DO UPDATE SET speaker = EXCLUDED.speaker RETURNING *`,
-      [message.author.id, speakerId]
+      [interaction.user.id, speakerId]
     );
 
     for (const speaker of speakersRes) {
       for (const style of speaker.styles) {
         if (style.id === Number(speakerId)) {
-          message.channel.send(
+          await interaction.reply(
             `${speaker.name}（${style.name}）に設定しました。`
           );
           return;

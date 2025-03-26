@@ -1,9 +1,11 @@
 services:
   bot:
     build: ./
-    volumes:
-      - .:/bot
     restart: always
+    command: node bot.js
+  command:
+    build: ./
+    command: node command.js
   voice:
     image: voicevox/voicevox_engine:cpu-latest
     platform: linux/amd64

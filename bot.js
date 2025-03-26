@@ -16,27 +16,33 @@ client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-client.on("messageCreate", async (message) => {
-  switch (message.content.split(" ")[0]) {
-    case "?help":
-      Help(message);
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isCommand()) return;
+
+  switch (interaction.commandName) {
+    case "help":
+      await Help(interaction);
       break;
-    case "?join":
-      Join(message);
+    case "join":
+      await Join(interaction);
       break;
-    case "?leave":
-      Leave(message);
+    case "leave":
+      await Leave(interaction);
       break;
-    case "?set":
-      Set(message);
+    case "set":
+      await Set(interaction);
       break;
-    case "?voice":
-      Voice(message);
+    case "voice":
+      await Voice(interaction);
       break;
     default:
-      Read(message);
+      await interaction.reply("不明なコマンドです");
       break;
   }
+});
+
+client.on("messageCreate", async (message) => {
+  await Read(message);
 });
 
 client.login(process.env.BOT_TOKEN);

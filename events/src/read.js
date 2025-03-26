@@ -2,16 +2,51 @@ import {
   getVoiceConnection,
   createAudioPlayer,
   createAudioResource,
+  AudioPlayerStatus,
 } from "@discordjs/voice";
 import axios from "axios";
 import { PassThrough } from "stream";
 import { DB } from "../../db.js";
 
+const queue = [];
+let isPlaying = false;
+
 export async function Read(message) {
   if (message.author.bot || !message.member.voice.channel) return;
 
-  const connection = getVoiceConnection(message.member.voice.channel.guild.id);
-  if (!connection) return;
+  const connection = getVoiceConnection(message.guild.id);
+
+  // VCが切断されていたらキューをクリアして終了
+  if (!connection) {
+    queue.length = 0;
+    isPlaying = false;
+    console.log("VCが切断されたため、キューをクリアしました");
+    return;
+  }
+
+  queue.push({ message, connection });
+  if (!isPlaying) {
+    playNext();
+  }
+}
+
+async function playNext() {
+  if (queue.length === 0) {
+    isPlaying = false;
+    return;
+  }
+
+  const { message, connection } = queue.shift();
+
+  // VCが切断されていたらキューをクリアして終了
+  if (!getVoiceConnection(message.guild.id)) {
+    queue.length = 0;
+    isPlaying = false;
+    console.log("VCが切断されたため、キューをクリアしました");
+    return;
+  }
+
+  isPlaying = true;
 
   try {
     const [[voice], queryRes] = await Promise.all([
@@ -31,7 +66,6 @@ export async function Read(message) {
       }
     );
 
-    // ストリームで直接再生
     const player = createAudioPlayer();
     const audioStream = new PassThrough();
     synthesisRes.data.pipe(audioStream);
@@ -39,7 +73,12 @@ export async function Read(message) {
     const resource = createAudioResource(audioStream);
     player.play(resource);
     connection.subscribe(player);
+
+    player.on(AudioPlayerStatus.Idle, () => {
+      playNext();
+    });
   } catch (error) {
     console.error("読み上げエラー:", error);
+    playNext();
   }
 }
