@@ -2,94 +2,44 @@ import {
   getVoiceConnection,
   createAudioPlayer,
   createAudioResource,
-  AudioPlayerStatus,
 } from "@discordjs/voice";
 import axios from "axios";
-import fs from "fs";
-import { pipeline } from "stream";
-import util from "util";
+import { PassThrough } from "stream";
 import { DB } from "../../db.js";
 
-const pipelineAsync = util.promisify(pipeline);
+export async function Read(message) {
+  if (message.author.bot || !message.member.voice.channel) return;
 
-const requestQueue = []; // 音声リクエストを管理するキュー
-let isProcessing = false; // 音声処理中かどうかのフラグ
-
-// 音声リクエスト処理の関数
-async function processQueue() {
-  if (isProcessing || requestQueue.length === 0) return;
-
-  const { message, connection, requestTime } = requestQueue.shift(); // キューからリクエストを取り出す
-  isProcessing = true; // 処理開始
-
-  const currentTime = Date.now();
-  if (currentTime - requestTime >= 60000) { // リクエストから1分以上経過していた場合
-    console.log("リクエストから1分以上経過しているため、スキップします。");
-    isProcessing = false;
-    processQueue(); // 次のリクエストを処理
-    return;
-  }
+  const connection = getVoiceConnection(message.member.voice.channel.guild.id);
+  if (!connection) return;
 
   try {
-    const [voice] = await DB("SELECT speaker FROM voices WHERE user_id = $1", [
-      message.author.id,
+    const [[voice], queryRes] = await Promise.all([
+      DB("SELECT speaker FROM voices WHERE user_id = $1", [message.author.id]),
+      axios.post("http://voice:50021/audio_query", "", {
+        headers: { accept: "application/json" },
+        params: { text: message.content, speaker: 1 },
+      }),
     ]);
 
-    const queryRes = await axios.post(
-      "http://voice:50021/audio_query",
-      "", // -d '' に対応
-      {
-        headers: {
-          accept: "application/json", // accept ヘッダー追加
-        },
-        params: { text: message.content, speaker: voice ? voice.speaker : 1 },
-      }
-    );
-
-    // VOICEVOX API: 音声合成
     const synthesisRes = await axios.post(
       "http://voice:50021/synthesis",
       queryRes.data,
       {
-        params: { speaker: voice ? voice.speaker : 1 },
-        responseType: "stream", // 音声データをストリームで受け取る
+        params: { speaker: voice?.speaker ?? 1 },
+        responseType: "stream",
       }
     );
 
-    // 音声ファイルを保存
-    const filePath = `./voice_${Date.now()}.wav`;
-    await pipelineAsync(synthesisRes.data, fs.createWriteStream(filePath));
-
-    // 音声を再生
+    // ストリームで直接再生
     const player = createAudioPlayer();
-    const resource = createAudioResource(filePath);
+    const audioStream = new PassThrough();
+    synthesisRes.data.pipe(audioStream);
+
+    const resource = createAudioResource(audioStream);
     player.play(resource);
     connection.subscribe(player);
-
-    // 再生終了後、ファイルを削除し、次のリクエストを処理
-    player.on(AudioPlayerStatus.Idle, () => {
-      fs.unlinkSync(filePath);
-      isProcessing = false; // 処理終了
-      processQueue(); // 次のリクエストを処理
-    });
   } catch (error) {
     console.error("読み上げエラー:", error);
-    isProcessing = false; // エラー発生時にもフラグを戻す
-    processQueue(); // 次のリクエストを処理
   }
-}
-
-export async function Read(message) {
-  if (message.author.bot) return;
-  if (!message.member.voice.channel) return;
-
-  const voiceChannel = message.member.voice.channel;
-  const connection = getVoiceConnection(voiceChannel.guild.id);
-  if (!connection) return;
-
-  // リクエストをキューに追加（リクエスト時刻を追加）
-  requestQueue.push({ message, connection, requestTime: Date.now() });
-
-  // キューの処理を開始
-  processQueue();
 }
