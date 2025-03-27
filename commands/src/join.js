@@ -2,7 +2,7 @@ import { joinVoiceChannel } from "@discordjs/voice";
 
 export async function Join(interaction) {
   const channel = interaction.member.voice.channel;
-  
+
   if (!channel) {
     return interaction.reply("VCに入ってからコマンドを実行してください。");
   }
