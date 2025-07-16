@@ -61,7 +61,7 @@ async function playNext(serverId) {
 
   try {
     const [voiceResult] = await DB(
-      "SELECT speaker FROM voices WHERE user_id = $1",
+      "SELECT speaker FROM voices WHERE user_id = ?",
       [message.author.id]
     );
     const speaker = voiceResult?.speaker ?? 1;

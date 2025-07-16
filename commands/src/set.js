@@ -14,7 +14,7 @@ export async function Set(interaction) {
   try {
     await DB(
       `INSERT INTO voices (user_id, speaker) 
-             VALUES ($1, $2) 
+             VALUES (?, ?) 
              ON CONFLICT (user_id) 
              DO UPDATE SET speaker = EXCLUDED.speaker RETURNING *`,
       [interaction.user.id, speakerId]
