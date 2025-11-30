@@ -13,10 +13,10 @@ export async function Set(interaction) {
 
   try {
     await DB(
-      `INSERT INTO voices (user_id, speaker) 
-             VALUES (?, ?) 
-             ON CONFLICT (user_id) 
-             DO UPDATE SET speaker = EXCLUDED.speaker RETURNING *`,
+      `INSERT INTO voices (user_id, speaker)
+        VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE
+        speaker = VALUES(speaker)`,
       [interaction.user.id, speakerId]
     );
 
